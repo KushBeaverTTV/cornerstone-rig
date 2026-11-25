@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "cornerstone.rig",
+  "name": "Cornerstone Rig",
+  "version": "1.0.0",
+  "author": "Kush Beaver Productionz",
+  "license": "MIT",
+  "description": "One bar panel for your hardware & streaming rig: LAN Mouse, Sunshine, Elgato Wave:3 USB recovery, PipeWire restart, /mnt/storage, and OneDrive.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Cornerstone Rig",
+    "description": "LAN Mouse, Sunshine, Elgato Wave:3 recovery, and storage health in one panel.",
+    "category": "System",
+    "aliases": [
+      "rig",
+      "desk",
+      "lan-mouse",
+      "sunshine",
+      "elgato",
+      "cornerstone-rig"
+    ],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {}
+  }
+}

@@ -11,7 +11,10 @@ function parseState(text) {
     storageMounted: d.storageMounted === true,
     onedrive: d.onedrive === true,
     wave3Alsa: d.wave3Alsa === true,
-    wave3Usb: d.wave3Usb === true
+    wave3Usb: d.wave3Usb === true,
+    jarvisActive: d.jarvisActive === true,
+    jarvisWake: d.jarvisWake === true,
+    jarvisGated: d.jarvisGated === true
   }
 }
 

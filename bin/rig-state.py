@@ -37,8 +37,22 @@ def has_wave3_usb():
     return False
 
 
+def jarvis_state():
+    path = os.path.expanduser("~/.local/state/cornerstone-jarvis/state.json")
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        return {
+            "jarvisActive": unit_active("cornerstone-jarvis"),
+            "jarvisWake": bool(d.get("wakeEnabled")),
+            "jarvisGated": bool(d.get("wakeGated")),
+        }
+    except Exception:
+        return {"jarvisActive": unit_active("cornerstone-jarvis"), "jarvisWake": False, "jarvisGated": False}
+
+
 def main():
-    print(json.dumps({
+    out = {
         "lanMouse": unit_active("lan-mouse"),
         "lanMouseGuard": unit_active("lan-mouse-guard"),
         "sunshine": unit_active("sunshine"),
@@ -46,7 +60,9 @@ def main():
         "onedrive": unit_active("onedrive-mount"),
         "wave3Alsa": has_wave3_alsa(),
         "wave3Usb": has_wave3_usb(),
-    }))
+    }
+    out.update(jarvis_state())
+    print(json.dumps(out))
 
 
 if __name__ == "__main__":

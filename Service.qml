@@ -16,7 +16,8 @@ Item {
 
   property var state: ({
     lanMouse: false, lanMouseGuard: false, sunshine: false,
-    storageMounted: true, onedrive: true, wave3Alsa: true, wave3Usb: true
+    storageMounted: true, onedrive: true, wave3Alsa: true, wave3Usb: true,
+    jarvisActive: false, jarvisWake: false, jarvisGated: false
   })
   property int watchers: 0
 
@@ -68,6 +69,10 @@ Item {
 
   function restartStorage() {
     run(["systemctl", "--user", "restart", "cornerstone-storage.service"])
+  }
+
+  function toggleJarvisWake() {
+    run(["cornerstone-jarvis", "wake", "toggle"])
   }
 
   Process {

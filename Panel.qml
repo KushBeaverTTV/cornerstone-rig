@@ -46,6 +46,9 @@ Panel {
   readonly property string barTooltip: Rig.tooltip(st)
 
   readonly property var rows: [
+    { id: "jarvis", glyph: "✦", label: "Jarvis Wake Word",
+      status: !st.jarvisActive ? "offline" : (!st.jarvisWake ? "wake off" : (st.jarvisGated ? "call paused" : "Hey Jarvis")),
+      ok: !!st.jarvisActive && !!st.jarvisWake, action: st.jarvisWake ? "mute wake" : "enable wake" },
     { id: "lanMouse", glyph: "󰍽", label: "LAN Mouse",
       status: st.lanMouse ? "active" : "paused", ok: !!st.lanMouse, action: st.lanMouse ? "pause" : "start" },
     { id: "sunshine", glyph: "󰢹", label: "Sunshine Stream Host",
@@ -79,7 +82,8 @@ Panel {
 
   function triggerRow(id) {
     if (!service) return
-    if (id === "lanMouse") service.toggleLanMouse()
+    if (id === "jarvis") service.toggleJarvisWake()
+    else if (id === "lanMouse") service.toggleLanMouse()
     else if (id === "sunshine") service.toggleSunshine()
     else if (id === "wave3") { service.resetElgatoWave3(); root.close() }
     else if (id === "pipewire") service.restartPipewire()

@@ -15,9 +15,10 @@ Item {
   readonly property string elgatoResetScript: Quickshell.env("HOME") + "/Work/reset-elgato-usb.sh"
 
   property var state: ({
-    lanMouse: false, lanMouseGuard: false, sunshine: false,
+    deviceName: "", lanMouse: false, lanMouseGuard: false, sunshine: false,
     storageMounted: true, onedrive: true, wave3Alsa: true, wave3Usb: true,
-    jarvisActive: false, jarvisWake: false, jarvisGated: false
+    jarvisActive: false, jarvisWake: false, jarvisGated: false, powerProfile: "",
+    capabilities: { jarvis: false, lanMouse: false, sunshine: false, wave3: false, pipewire: true, storage: false, onedrive: false, powerProfile: false }
   })
   property int watchers: 0
 
@@ -73,6 +74,13 @@ Item {
 
   function toggleJarvisWake() {
     run(["cornerstone-jarvis", "wake", "toggle"])
+  }
+
+  function cyclePowerProfile() {
+    var next = Rig.nextPowerProfile(state.powerProfile)
+    run(["powerprofilesctl", "set", next])
+    Quickshell.execDetached(["omarchy-shell", "dynamic-island", "toast",
+      "Power profile", next, "󰾅", next === "performance" ? "orange" : (next === "power-saver" ? "green" : "accent")])
   }
 
   Process {

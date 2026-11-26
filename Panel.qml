@@ -42,29 +42,11 @@ Panel {
   }
 
   readonly property var st: service ? service.state : ({})
+  readonly property var cap: Rig.parseCapabilities(st.capabilities)
   readonly property bool hasIssue: service ? service.hasIssue : false
   readonly property string barTooltip: Rig.tooltip(st)
 
-  readonly property var rows: [
-    { id: "jarvis", glyph: "✦", label: "Jarvis Wake Word",
-      status: !st.jarvisActive ? "offline" : (!st.jarvisWake ? "wake off" : (st.jarvisGated ? "call paused" : "Hey Jarvis")),
-      ok: !!st.jarvisActive && !!st.jarvisWake, action: st.jarvisWake ? "mute wake" : "enable wake" },
-    { id: "lanMouse", glyph: "󰍽", label: "LAN Mouse",
-      status: st.lanMouse ? "active" : "paused", ok: !!st.lanMouse, action: st.lanMouse ? "pause" : "start" },
-    { id: "sunshine", glyph: "󰢹", label: "Sunshine Stream Host",
-      status: st.sunshine ? "live" : "off", ok: !!st.sunshine, action: st.sunshine ? "stop" : "start" },
-    { id: "wave3", glyph: "󰍬", label: "Elgato Wave:3 Audio",
-      status: st.wave3Alsa ? "healthy" : (st.wave3Usb ? "USB hung" : "unplugged"),
-      ok: !!st.wave3Alsa, bad: !st.wave3Alsa, action: "USB reset" },
-    { id: "pipewire", glyph: "󰕾", label: "PipeWire Audio Graph",
-      status: "running", ok: true, action: "restart" },
-    { id: "storage", glyph: "󰋊", label: "/mnt/storage",
-      status: st.storageMounted ? "mounted" : "unmounted",
-      ok: !!st.storageMounted, bad: !st.storageMounted, action: "remount" },
-    { id: "onedrive", glyph: "󰏊", label: "OneDrive Mount",
-      status: st.onedrive ? "active" : "offline",
-      ok: !!st.onedrive, bad: !st.onedrive, action: "restart" }
-  ]
+  readonly property var rows: Rig.visibleRows(st)
 
   property int cursor: -1
   property bool watching: false
@@ -82,7 +64,8 @@ Panel {
 
   function triggerRow(id) {
     if (!service) return
-    if (id === "jarvis") service.toggleJarvisWake()
+    if (id === "powerProfile") service.cyclePowerProfile()
+    else if (id === "jarvis") service.toggleJarvisWake()
     else if (id === "lanMouse") service.toggleLanMouse()
     else if (id === "sunshine") service.toggleSunshine()
     else if (id === "wave3") { service.resetElgatoWave3(); root.close() }
@@ -100,8 +83,13 @@ Panel {
     bar: root.bar
     tooltipText: root.opened ? "" : root.barTooltip
     onPressed: function(code) {
-      if (code === Qt.RightButton && root.service) root.service.toggleLanMouse()
-      else root.toggle()
+      if (code === Qt.RightButton && root.service) {
+        if (root.cap.lanMouse) root.service.toggleLanMouse()
+        else if (root.cap.powerProfile) root.service.cyclePowerProfile()
+        else root.toggle()
+      } else {
+        root.toggle()
+      }
     }
     iconComponent: Component {
       Item {
@@ -115,7 +103,7 @@ Panel {
           font.pixelSize: Style.font.icon
         }
         Rectangle {
-          visible: root.hasIssue || !root.st.lanMouse || !!root.st.sunshine
+          visible: root.hasIssue || (root.cap.lanMouse && !root.st.lanMouse) || (root.cap.sunshine && !!root.st.sunshine)
           width: 5; height: 5; radius: 2.5
           anchors.right: parent.right
           anchors.top: parent.top
@@ -175,7 +163,9 @@ Panel {
           }
           Text {
             textFormat: Text.PlainText
-            text: root.hasIssue ? root.service.issues.join(" · ") : "Hardware, sharing & mounts healthy"
+            text: root.hasIssue
+              ? root.service.issues.join(" · ")
+              : (root.st.deviceName ? root.st.deviceName + " · healthy" : "Hardware, sharing & mounts healthy")
             color: root.hasIssue ? root.badColor : root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption

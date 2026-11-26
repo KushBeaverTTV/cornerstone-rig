@@ -3,7 +3,8 @@
 
 Auto-discovers which services and peripherals actually exist on this PC
 (desktop rig vs laptop/MacBook) so missing desktop-only hardware never triggers
-false errors on portable or minimal machines.
+false errors on portable or minimal machines. Batches systemd queries into a
+single subprocess for low latency and minimal laptop power draw.
 """
 import glob
 import json
@@ -14,11 +15,8 @@ import subprocess
 
 
 HOME = os.path.expanduser("~")
-UNIT_DIRS = (
-    os.path.join(HOME, ".config/systemd/user"),
-    "/etc/systemd/user",
-    "/usr/lib/systemd/user",
-)
+USER_UNIT_DIR = os.path.join(HOME, ".config/systemd/user")
+UNIT_DIRS = (USER_UNIT_DIR, "/etc/systemd/user", "/usr/lib/systemd/user")
 
 
 def read_text(path):
@@ -34,26 +32,32 @@ def unit_exists(name):
     return any(os.path.exists(os.path.join(d, fname)) for d in UNIT_DIRS)
 
 
-def unit_active(name):
-    try:
-        r = subprocess.run(
-            ["systemctl", "--user", "is-active", f"{name}.service"],
-            capture_output=True, text=True, timeout=1.5
-        )
-        return r.stdout.strip() == "active"
-    except Exception:
-        return False
+def unit_enabled_fast(name):
+    """Zero-fork check for user unit enablement symlinks in *.wants/."""
+    fname = f"{name}.service"
+    for wants in glob.glob(os.path.join(USER_UNIT_DIR, "*.wants")):
+        if os.path.lexists(os.path.join(wants, fname)):
+            return True
+    return False
 
 
-def unit_enabled(name):
+def batch_units_active(names):
+    """Query active status for all requested units in a single systemctl call."""
+    if not names:
+        return {}
+    units = [f"{n}.service" for n in names]
     try:
         r = subprocess.run(
-            ["systemctl", "--user", "is-enabled", f"{name}.service"],
-            capture_output=True, text=True, timeout=1.5
+            ["systemctl", "--user", "is-active", *units],
+            capture_output=True, text=True, timeout=1.5,
         )
-        return r.stdout.strip() in ("enabled", "indirect")
+        lines = r.stdout.splitlines()
+        return {
+            name: (lines[i].strip() == "active") if i < len(lines) else False
+            for i, name in enumerate(names)
+        }
     except Exception:
-        return False
+        return {name: False for name in names}
 
 
 def has_wave3_alsa():
@@ -82,7 +86,7 @@ def power_profile():
     try:
         r = subprocess.run(
             ["powerprofilesctl", "get"],
-            capture_output=True, text=True, timeout=1.5
+            capture_output=True, text=True, timeout=1.5,
         )
         val = r.stdout.strip()
         return val if val in ("performance", "balanced", "power-saver") else ""
@@ -102,9 +106,8 @@ def detect_device_name():
     return socket.gethostname()
 
 
-def jarvis_state():
+def jarvis_flags(active):
     path = os.path.expanduser("~/.local/state/cornerstone-jarvis/state.json")
-    active = unit_active("cornerstone-jarvis")
     try:
         with open(path) as f:
             d = json.load(f)
@@ -125,16 +128,30 @@ def main():
     onedrive_present = unit_exists("onedrive-mount")
     lan_mouse_present = unit_exists("lan-mouse") or bool(shutil.which("lan-mouse"))
     sunshine_present = unit_exists("sunshine") or bool(shutil.which("sunshine"))
-    jarvis_present = unit_exists("cornerstone-jarvis") and (unit_active("cornerstone-jarvis") or unit_enabled("cornerstone-jarvis"))
+    jarvis_unit = unit_exists("cornerstone-jarvis")
+
+    to_query = []
+    if lan_mouse_present:
+        to_query.extend(["lan-mouse", "lan-mouse-guard"])
+    if sunshine_present:
+        to_query.append("sunshine")
+    if onedrive_present:
+        to_query.append("onedrive-mount")
+    if jarvis_unit:
+        to_query.append("cornerstone-jarvis")
+
+    active = batch_units_active(to_query)
+    jarvis_active = active.get("cornerstone-jarvis", False)
+    jarvis_present = jarvis_unit and (jarvis_active or unit_enabled_fast("cornerstone-jarvis"))
     pp = power_profile()
 
     out = {
         "deviceName": detect_device_name(),
-        "lanMouse": unit_active("lan-mouse") if lan_mouse_present else False,
-        "lanMouseGuard": unit_active("lan-mouse-guard") if lan_mouse_present else False,
-        "sunshine": unit_active("sunshine") if sunshine_present else False,
+        "lanMouse": active.get("lan-mouse", False),
+        "lanMouseGuard": active.get("lan-mouse-guard", False),
+        "sunshine": active.get("sunshine", False),
         "storageMounted": os.path.ismount("/mnt/storage") if storage_present else False,
-        "onedrive": unit_active("onedrive-mount") if onedrive_present else False,
+        "onedrive": active.get("onedrive-mount", False),
         "wave3Alsa": wave3_alsa,
         "wave3Usb": wave3_usb,
         "powerProfile": pp,
@@ -149,7 +166,7 @@ def main():
             "powerProfile": bool(pp),
         },
     }
-    out.update(jarvis_state())
+    out.update(jarvis_flags(jarvis_active))
     print(json.dumps(out))
 
 

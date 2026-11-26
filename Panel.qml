@@ -140,8 +140,9 @@ Panel {
       }
       onTextKey: function(t) {
         if (!root.service) return
-        if (t === "l" || t === "L") root.service.toggleLanMouse()
-        else if (t === "s" || t === "S") root.service.toggleSunshine()
+        if ((t === "l" || t === "L") && root.cap.lanMouse) root.service.toggleLanMouse()
+        else if ((t === "s" || t === "S") && root.cap.sunshine) root.service.toggleSunshine()
+        else if ((t === "p" || t === "P") && root.cap.powerProfile) root.service.cyclePowerProfile()
         else if (t === "r" || t === "R") root.service.refresh()
       }
       clip: true
@@ -258,7 +259,15 @@ Panel {
           width: parent.width
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
-          text: "Right-click icon = pause/resume LAN Mouse · l LAN Mouse · s Sunshine · j/k + Enter"
+          text: {
+            var hints = []
+            if (root.cap.lanMouse) hints.push("Right-click = LAN Mouse", "l LAN Mouse")
+            else if (root.cap.powerProfile) hints.push("Right-click = power profile")
+            if (root.cap.sunshine) hints.push("s Sunshine")
+            if (root.cap.powerProfile) hints.push("p power")
+            hints.push("j/k + Enter")
+            return hints.join(" · ")
+          }
           color: root.muted
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption

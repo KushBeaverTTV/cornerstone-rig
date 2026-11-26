@@ -1,10 +1,10 @@
 # Cornerstone Rig
 
-Hardware, streaming, and mount control center for the Omarchy status bar.
+Device-aware hardware, streaming, power, and mount control center for the Omarchy status bar.
 
-- **Bar icon**: single crisp gear glyph with an amber dot whenever Wave:3, PipeWire, `/mnt/storage`, or OneDrive needs attention.
-- **Clicks**: left-click opens the panel; right-click pauses/resumes LAN Mouse.
-- **Controls**: live status and one-click toggle/recovery for LAN Mouse, Sunshine Stream Host, Elgato Wave:3 USB audio reset, PipeWire restart, `/mnt/storage` mount, and OneDrive mount (`l` LAN Mouse, `s` Sunshine, `j`/`k` + Enter).
+- **Auto-discovery**: probes which hardware and services actually exist on this PC (Power Profile, Jarvis, LAN Mouse, Sunshine, Elgato Wave:3, PipeWire, `/mnt/storage`, OneDrive) and hides absent desktop peripherals so laptops and minimal hosts never show false errors.
+- **Bar icon**: crisp gear glyph with a status dot when a configured service or peripheral needs attention (or when Sunshine is live / LAN Mouse is paused).
+- **Clicks & keys**: left-click opens the panel; right-click toggles LAN Mouse (or cycles Power Profile on laptops without LAN Mouse). Keyboard: `l` LAN Mouse, `s` Sunshine, `p` power profile, `j`/`k` + Enter.
 
 ## Tests
 
